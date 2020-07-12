@@ -1,26 +1,12 @@
 import pandas as pd
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 import requests
 import numpy as np
 import re
-
-
-url = "https://www.pro-football-reference.com/years/2000/index.htm#all_passing"
-response = requests.get(url)        
-page = response.text
-        soup = BeautifulSoup(page, "lxml")
-soup        
-        #find all rows of table
-        table = soup.find("table")
-        rows = [row for row in table.find_all("tr")]
-rows[3]
-
-table = soup.find(lambda tag: 
-                  tag.name=='table' 
-                  and tag.has_attr('id') 
-                  and tag['id']=="passing")
-
-table
+import time
+import os
 
 
 def scrape_draft_data(min_year,max_year):
@@ -325,9 +311,53 @@ def scrape_college_data(df):
     return college_df
 
 
-def scrape_team_data():
+def scrape_team_data(min_year,max_year):
 
+    team_df = pd.DataFrame()
+    
+    #need to use sellenium webdriver to allow for passing table to load
+    chromedriver = "/Applications/chromedriver" # path to the chromedriver executable
+    os.environ["webdriver.chrome.driver"] = chromedriver
+    driver = webdriver.Chrome(chromedriver)
+    
+    for year in range(min_year,max_year+1):
+        
+        #load passing table with sellenium, wait for it to load fully
+        driver.get(f"https://www.pro-football-reference.com/years/{year}/index.htm#all_passing")
+        time.sleep(3)
+        
+        #locate passing table and parse all rows
+        soup = BeautifulSoup(driver.page_source)
+        table = soup.find(lambda tag: 
+                          tag.name=='table' 
+                          and tag.has_attr('id') 
+                          and tag['id']=="passing")
+
+        rows = [row for row in table.find_all("tr")]
+         
+        #there were 31 team prior to 2002, 32 starting in 2003
+        final_row = ''
+        if year < 2002:
+            final_row = 32
+        else:
+            final_row = 33
+
+            final_year = 3
+        
+        #collect total receiving yards in dictionary
+        stats_dict = {}
+        for row in rows[1:final_row]:
+            columns = row.find_all('td')
+            team = columns[0].text
+            total_yards = columns[5].text
+            stats_dict[team] = ([year,team,total_yards])
+                
+        team_df_year = pd.DataFrame(stats_dict).T  #transpose
+        team_df_year.columns= (["year","team","total_yards"])
+        team_df = pd.concat([team_df, team_df_year])
+        
+    return team_df
 
 ###RUN HERE
-
-
+test_team_data = scrape_team_data(1999,2004)
+test_team_data.reset_index(inplace=True)
