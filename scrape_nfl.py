@@ -5,6 +5,23 @@ import numpy as np
 import re
 
 
+url = "https://www.pro-football-reference.com/years/2000/index.htm#all_passing"
+response = requests.get(url)        
+page = response.text
+        soup = BeautifulSoup(page, "lxml")
+soup        
+        #find all rows of table
+        table = soup.find("table")
+        rows = [row for row in table.find_all("tr")]
+rows[3]
+
+table = soup.find(lambda tag: 
+                  tag.name=='table' 
+                  and tag.has_attr('id') 
+                  and tag['id']=="passing")
+
+table
+
 
 def scrape_draft_data(min_year,max_year):
     """
@@ -197,10 +214,9 @@ def scrape_nfl_data(df):
             #first year begins in row 2, calculate final year of career
             stats_dict = {}
             
-            #only pulling rookie year for now, but leaving functionality
-            #to pull more
+            #rookie year starts in row 2
+            #adding functionality to pull more than 1 year by adjusting final_year
             final_year = 3
-            #final_year = len(rows) - 1
             
             for row in rows[2:final_year]:
                 columns = row.find_all('td')
@@ -250,56 +266,53 @@ def scrape_college_data(df):
     """
 
     #limit list to just valid urls
-    scrape_url_list = df[["player","nfl_link"]].dropna()
+    scrape_url_list = df[["player","college_link"]].dropna()
     
     player_df = pd.DataFrame()
     college_df = pd.DataFrame()
     player_lookup = 0
     
-    for link in scrape_url_list["nfl_link"]:
+    for link in scrape_url_list["college_link"]:
         
         #creates url for each player
-        url = f"https://www.pro-football-reference.com{link}"
-        response = requests.get(url)
+        response = requests.get(link)
         
         page = response.text
         soup = BeautifulSoup(page, "lxml")
 
-#        table = soup.find("table")
-
-        #some players have multiple tables, find receiving & rushing table 
-        table = soup.find(lambda tag: 
-                          tag.name=='table' 
-                          and tag.has_attr('id') 
-                          and tag['id']=="receiving_and_rushing")
+        table = soup.find("table")
         
         try:
+
+            #only want to scrape player's final season in college
+            #checks to find "career" row, so we can locate the row before it
             rows = [row for row in table.find_all("tr")]
-            
-            #scrape game and receiving stats for each year of player's career
-            #first year begins in row 2, calculate final year of career
+            career_row = 0
+            for row in rows:
+                header = row.find("th").text
+                if header == "Career":
+                    break
+                else:
+                    career_row += 1
+            final_year = career_row - 1
+            row = rows[final_year]
+
+            columns = row.find_all('td')
+            year = row.find("th").text
+            team = columns[0].text
+            conf = columns[1].text
+            grade = columns[2].text
+            rec = columns[5].text
+            rec_yds = columns[6].text
+            rec_td = columns[8].text
+            scrim_yds = columns[14].text
+            scrim_td = columns[16].text
+
             stats_dict = {}
-            
-            #only pulling rookie year for now, but leaving functionality
-            #to pull more
-            final_year = 3
-            #final_year = len(rows) - 1
-            
-            for row in rows[2:final_year]:
-                columns = row.find_all('td')
-                year = row.find("th").text
-                team = columns[1].text
-                games = columns[4].text
-                games_started = columns[5].text
-                tgt = columns[6].text
-                rec = columns[7].text
-                rec_yards = columns[8].text
-                rec_tds = columns[10].text
-                AV = columns[30].text
-                stats_dict[year] = ([year,team,games,games_started,tgt,rec,rec_yards
-                                      ,rec_tds,AV])
+            stats_dict[year] = ([year,team,conf,grade,rec,rec_yds,rec_td,scrim_yds,scrim_td])
         except:
             stats_dict = {}
+            
         #convert dictionary to dataframe, assign player name for each year(row)
         #add player dataframe to final dataframe
         player = scrape_url_list.index[player_lookup]
@@ -308,26 +321,13 @@ def scrape_college_data(df):
         college_df = pd.concat([college_df, player_df]) 
         player_lookup += 1
     
-    college_df.columns= (["player","year","team","games","games_started","tgt","rec"
-                      ,"rec_yards","rec_tds","AV"])
+    college_df.columns= (["year","team","conf","grade","rec","rec_yds","rec_td","scrim_yds","scrim_td","player"])
     return college_df
 
+
+def scrape_team_data():
+
+
 ###RUN HERE
-combine_10_19 = scrape_combine_data(2019,2019)
-nfl_stats_10_19 = scrape_nfl_data(combine_10_19)
-
-# ###TEST COUNTS
-# df_10_19["player"].value_counts()
-
-# ###TEST WHAT'S WRONG
-# df_10_19.to_csv('stats.csv')
-# combine_10_19.to_csv('combine.csv')
 
 
-
-# def scrape_college_data():
-    
-# #can probably get away without draft data 
-# def scrape_team_data():
-# def scrape_draft_data():
-    
