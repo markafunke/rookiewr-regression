@@ -1,7 +1,14 @@
+"""
+This module contains 5 functions used to scrape 
+combine, draft, nfl, and college, stats from pro football reference.
+
+@author: markafunke
+"""
+
+
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 import requests
 import numpy as np
 import re
@@ -222,13 +229,16 @@ def scrape_nfl_data(df):
         #convert dictionary to dataframe, assign player name for each year(row)
         #add player dataframe to final dataframe
         player = scrape_url_list.index[player_lookup]
+        nfl_link = scrape_url_list.nfl_link[player_lookup]
         player_df = pd.DataFrame(stats_dict).T
         player_df["player"] = player
+        player_df["nfl_link"] = nfl_link
         nfl_df = pd.concat([nfl_df, player_df]) 
         player_lookup += 1
+        time.sleep(0.5)
     
-    nfl_df.columns= (["player","year","team","games","games_started","tgt","rec"
-                      ,"rec_yards","rec_tds","AV"])
+    nfl_df.columns= (["year","team","games","games_started","tgt","rec"
+                      ,"rec_yards","rec_tds","AV","player","nfl_link"])
     return nfl_df
 
 
@@ -302,12 +312,15 @@ def scrape_college_data(df):
         #convert dictionary to dataframe, assign player name for each year(row)
         #add player dataframe to final dataframe
         player = scrape_url_list.index[player_lookup]
+        college_link = scrape_url_list.college_link[player_lookup]
         player_df = pd.DataFrame(stats_dict).T
         player_df["player"] = player
+        player_df["college_link"] = college_link
         college_df = pd.concat([college_df, player_df]) 
         player_lookup += 1
+        time.sleep(0.5)
     
-    college_df.columns= (["year","team","conf","grade","rec","rec_yds","rec_td","scrim_yds","scrim_td","player"])
+    college_df.columns= (["col_year","col_team","conf","col_class","col_rec","col_rec_yds","col_rec_td","col_scrim_yds","col_scrim_td","player","college_link"])
     return college_df
 
 
@@ -341,8 +354,6 @@ def scrape_team_data(min_year,max_year):
             final_row = 32
         else:
             final_row = 33
-
-            final_year = 3
         
         #collect total receiving yards in dictionary
         stats_dict = {}
@@ -358,6 +369,6 @@ def scrape_team_data(min_year,max_year):
         
     return team_df
 
-###RUN HERE
-test_team_data = scrape_team_data(1999,2004)
-test_team_data.reset_index(inplace=True)
+if __name__ == '__main__':
+    main()
+    
