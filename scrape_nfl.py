@@ -369,6 +369,26 @@ def scrape_team_data(min_year,max_year):
         
     return team_df
 
+def clean_player_name(df):
+    
+    #remove whitespaces
+    player_name = df["player"].strip()
+    
+    #fix 8 outlier cases found through EDA
+    player_issues = {'Ted Ginn Jr.' : 'Ted Ginn',
+                     'Odell Beckham Jr.' : 'Odell Beckham, Jr.',
+                     'Gary Jennings Jr' : 'Gary Jennings',
+                     'Michael Pittman Jr.' : 'Michael Pittman',
+                     'Lynn Bowden Jr.' : 'Lynn Bowden',
+                     'JJ Nelson' : 'J.J. Nelson',
+                     'JJ Arcega-Whiteside' : 'J.J. Arcega-Whiteside'}
+                     
+    if player_name in player_issues.keys():
+            player_name = player_issues[player_name]
+    
+    return player_name
+
+
 if __name__ == '__main__':
     main()
     

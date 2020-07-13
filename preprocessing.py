@@ -56,18 +56,20 @@ draft_df_00_20 = draft_df_00_20.merge(college_to_merge
                                      , right_on = "college_link")
 
 # Merge Combine Data
+#Clean "player" column in draft data before merging on "player"
+draft_df_00_20['player_clean'] = draft_df_00_20.apply(clean_player_name, axis=1)
+
 
 columns_to_merge = ["nfl_link","college_link","year","player"
                     ,"height","weight","time_40","vertical","bench_reps"
                     ,"broad_jump","cone_3","shuttle","draft_pick"]
 combine_to_merge = combine_df_00_20[columns_to_merge]
-test2 = draft_df_00_20.merge(combine_to_merge
+draft_df_00_20 = draft_df_00_20.merge(combine_to_merge
                                      , how = "left"
-                                     , left_on = "college_link"
-                                     , right_on = "college_link")
-test2.to_csv("test_college.csv")
+                                     , left_on = ["player_clean","year"]
+                                     , right_on = ["player","year"])
 
-combine_to_merge.to_csv("testcombine.csv")
+draft_df_00_20.to_csv("test_merge.csv")
 
 
 Try to merge on Name/Year
