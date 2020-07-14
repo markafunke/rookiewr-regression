@@ -6,6 +6,8 @@ combine, draft, nfl, and college, stats from pro football reference.
 """
 
 
+
+
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -179,22 +181,25 @@ def scrape_nfl_data(df):
     #limit list to just valid urls
     scrape_url_list = df[["player","nfl_link"]].dropna()
     
+    #initialize dataframes to be used later
     player_df = pd.DataFrame()
     nfl_df = pd.DataFrame()
     player_lookup = 0
     
+    #Use sellenium webdriver to allow for receiving and rushing table to load
+    chromedriver = "/Applications/chromedriver" # path to the chromedriver executable
+    os.environ["webdriver.chrome.driver"] = chromedriver
+    driver = webdriver.Chrome(chromedriver)
+    
     for link in scrape_url_list["nfl_link"]:
         
-        #creates url for each player
-        url = f"https://www.pro-football-reference.com{link}"
-        response = requests.get(url)
-        
-        page = response.text
-        soup = BeautifulSoup(page, "lxml")
+        #load receiving table with sellenium, wait for it to load fully
+        driver.get(f"https://www.pro-football-reference.com{link}#all_receiving_and_rushing")
+        time.sleep(1)
 
-#        table = soup.find("table")
 
-        #some players have multiple tables, find receiving & rushing table 
+        #locate receiving table and parse all rows 
+        soup = BeautifulSoup(driver.page_source)
         table = soup.find(lambda tag: 
                           tag.name=='table' 
                           and tag.has_attr('id') 
@@ -221,9 +226,8 @@ def scrape_nfl_data(df):
                 rec = columns[7].text
                 rec_yards = columns[8].text
                 rec_tds = columns[10].text
-                AV = columns[30].text
                 stats_dict[year] = ([year,team,games,games_started,tgt,rec,rec_yards
-                                      ,rec_tds,AV])
+                                      ,rec_tds])
         except:
             stats_dict = {}
         #convert dictionary to dataframe, assign player name for each year(row)
@@ -238,7 +242,7 @@ def scrape_nfl_data(df):
         time.sleep(0.5)
     
     nfl_df.columns= (["year","team","games","games_started","tgt","rec"
-                      ,"rec_yards","rec_tds","AV","player","nfl_link"])
+                      ,"rookie_rec_yards","rec_tds","player","nfl_link"])
     return nfl_df
 
 
@@ -387,6 +391,61 @@ def clean_player_name(df):
             player_name = player_issues[player_name]
     
     return player_name
+
+def add_team_abbrev(df):
+    
+    #mapping of team to 3 letter abbreviation
+    team_abbreviations =    {'Arizona Cardinals' : 'ARI',
+                            'Atlanta Falcons' : 'ATL',
+                            'Baltimore Ravens' : 'BAL',
+                            'Buffalo Bills' : 'BUF',
+                            'Carolina Panthers' : 'CAR',
+                            'Chicago Bears' : 'CHI',
+                            'Cincinnati Bengals' : 'CIN',
+                            'Cleveland Browns' : 'CLE',
+                            'Dallas Cowboys' : 'DAL',
+                            'Denver Broncos' : 'DEN',
+                            'Detroit Lions' : 'DET',
+                            'Green Bay Packers' : 'GNB',
+                            'Houston Texans' : 'HOU',
+                            'Indianapolis Colts' : 'IND',
+                            'Jacksonville Jaguars' : 'JAX',
+                            'Kansas City Chiefs' : 'KAN',
+                            'Los Angeles Chargers' : 'LAC',
+                            'Los Angeles Rams' : 'LAR',
+                            'Miami Dolphins' : 'MIA',
+                            'Minnesota Vikings' : 'MIN',
+                            'New Orleans Saints' : 'NOR',
+                            'New England Patriots' : 'NWE',
+                            'New York Giants' : 'NYG',
+                            'New York Jets' : 'NYJ',
+                            'Oakland Raiders' : 'OAK',
+                            'Philadelphia Eagles' : 'PHI',
+                            'Pittsburgh Steelers' : 'PIT',
+                            'San Diego Chargers' : 'SDG',
+                            'Seattle Seahawks' : 'SEA',
+                            'San Francisco 49ers' : 'SFO',
+                            'St. Louis Rams' : 'STL',
+                            'Tampa Bay Buccaneers' : 'TAM',
+                            'Tennessee Titans' : 'TEN',
+                            'Washington Redskins' : 'WAS'}
+                     
+    team = df["team"]
+    team_abbrev = team_abbreviations[team]
+    
+    # Oakland changed to Las Vegas Raiders in 2020
+    # St Louis Rams changed to Los Angeles Rams in 2016
+    # San Diego Chargers changed to Los Angeles Chargers in 2017
+    
+    if team_abbrev == "OAK" and df["year_merge"] == "2020":
+        team_abbrev = "LVR"
+    if team_abbrev == "STL" and df["year_merge"] == "2016":
+        team_abbrev = "LAR"
+    if team_abbrev == "SDG" and df["year_merge"] == "2017":
+        team_abbrev = "LAC"
+
+    return team_abbrev
+
 
 
 if __name__ == '__main__':
