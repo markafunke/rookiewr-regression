@@ -30,6 +30,7 @@ nfl_df = nfl_df[mask]
 sns.heatmap(nfl_df.corr(), cmap="seismic", annot=True, vmin=-1, vmax=1);
 
 # Create pairplot to look for any visual patterns between features
+sns.pairplot(nfl_df, height=1.2, aspect=1.5);
 
 # Evaluate distribution of target variable
 # Can see target is right skewed
