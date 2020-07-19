@@ -2,12 +2,10 @@
 This module contains 5 functions used to scrape 
 combine, draft, nfl, and college, stats from pro football reference.
 
+As well as 2 functions used for cleaning the same data.
+
 @author: markafunke
 """
-
-
-
-
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -214,7 +212,7 @@ def scrape_nfl_data(df):
             
             #rookie year starts in row 2
             #adding functionality to pull more than 1 year by adjusting final_year
-            final_year = 3
+            final_year = 5
             
             for row in rows[2:final_year]:
                 columns = row.find_all('td')
@@ -445,8 +443,6 @@ def add_team_abbrev(df):
         team_abbrev = "LAC"
 
     return team_abbrev
-
-
 
 if __name__ == '__main__':
     main()
