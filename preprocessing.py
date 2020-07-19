@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jul 12 09:22:59 2020
+Scrapes and cleans data from profootball reference.
+    -Draft Data for Wide Receivers
+    -Combine Data for Wide Receivers
+    -NFL Wide Receivers Rookie Year Stats
+    -NCAA Wide Receivers Final Year Stats
+    -NFL Team Level Receiving Data
+    
+Outputs pickles used for fitting a linear regression model, as well as plots in:
+    -plots.py
+    -train_regression.py
 
 @author: markfunke
 """
 
 import scrape_nfl
 import pandas as pd
-import seaborn as sns
-import matplotlib.plotly as plt
+import re
+import numpy as np
+
 
 # Scrape draft, combine, team stats, nfl stats, and college stats
 # for all drafted wide receivers from the years 2000 - 2020
@@ -61,7 +71,6 @@ draft_df_00_20 = draft_df_00_20.merge(college_to_merge
 #Clean "player" column in draft data before merging on "player"
 draft_df_00_20['player_clean'] = draft_df_00_20.apply(scrape_nfl.clean_player_name, axis=1)
 
-
 columns_to_merge = ["nfl_link","college_link","year","player"
                     ,"height","weight","time_40","vertical","bench_reps"
                     ,"broad_jump","cone_3","shuttle","draft_pick"]
@@ -95,7 +104,7 @@ draft_df_00_20 = pd.read_pickle("pickles/draft_pre_clean.pkl")
 # Clean Dataset for Analysis
 # Limit to only columns that are candidates to be features
 colums_to_keep = (["player_clean","rookie_rec_yards","rnd","pick","conf","col_class"
-                  ,"col_scrim_yds", "col_rec_yds", "height", "weight", "time_40", "total_yards"])
+                  ,"col_scrim_yds", "col_rec_yds", "height", "weight", "time_40", "total_yards", "vertical"])
 
 df_cleaned = draft_df_00_20[colums_to_keep]
 
@@ -112,7 +121,7 @@ df_cleaned = df_cleaned.applymap(lambda x: np.nan if isinstance(x, str) and (not
 
 # Convert object datatypes that should be numerical to floats
 numerical = (["rookie_rec_yards","rnd","pick","col_scrim_yds","col_rec_yds"
-             ,"weight", "time_40", "total_yards"])
+             ,"weight", "time_40", "total_yards", "vertical"])
 
 for column in numerical:
     df_cleaned[column] = pd.to_numeric(df_cleaned[column], errors='coerce') 
@@ -132,9 +141,13 @@ df_cleaned["height"] = df_cleaned["height"].map(get_inches, na_action='ignore')
 # Add dummy column separating power 5 and non-power 5 players
 # The power 5 conferences tend to have the most talented players,
 # so the theory is that a player from there may do better in the NFL
-power_5_conf = ["SEC", "Big Ten", "ACC", "Big 12", "Pac-10", "Pac-12"]
+power_5_conf = ["SEC", "Big Ten", "ACC", "Big 12", "Pac-12"]
+df_cleaned["conf"] = df_cleaned["conf"].map(lambda x: "Pac-12" if x == "Pac-10" else x)
 df_cleaned["conf"] = df_cleaned["conf"].map(lambda x: x if x in power_5_conf else "Other")
 df_cleaned["power_5"] = df_cleaned["conf"].map(lambda x: 1 if x in power_5_conf else 0)
+df_cleaned["isSEC"] = df_cleaned["conf"].map(lambda x: 1 if x == "SEC" else 0)
+df_cleaned["isRd1"] = df_cleaned["rnd"].map(lambda x: 1 if x == 1 else 0)
+df_cleaned["SEC_Rd1"] = df_cleaned["isSEC"] * df_cleaned["isRd1"]
 
 # Convert college_class to left_early 1/0 fummy column
 # The theory is that someone leaving college early is likely doing so because
@@ -149,7 +162,7 @@ df_cleaned_dropna.to_pickle("pickles/cleaned_nona.pkl")
 
 # Create alternative  "raw" version that we can use to test imputing means
 # or medians during regression analysis
-df_cleaned.to_pickle("pickles/cleaned_impute.pkl")
+df_cleaned.to_pickle("pickles/cleaned.pkl")
 
 
 
