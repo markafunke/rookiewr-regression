@@ -30,7 +30,7 @@ This code demonstrates an iterative process used to choose the best performing m
 
 **3. [plots.py](https://github.com/markafunke/rookiewr-regression/blob/master/plots.py/):**
 
-Used for Exploratory Data Analysis to inform decisions made in train_regression.py, as well as for visuals used in [presentation](https://github.com/markafunke/rookiewr-regression/blob/master/NFL_WR_Regression.pdf).
+Used for Exploratory Data Analysis to inform decisions made in train_regression.py, as well as for visuals used in this Metis [presentation](https://github.com/markafunke/rookiewr-regression/blob/master/NFL_WR_Regression.pdf).
 
 The python code above utilizes the following modules created for this project:
 
